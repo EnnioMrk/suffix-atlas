@@ -1,0 +1,5 @@
+.git
+.gitignore
+.taste-skill
+node_modules
+*.log

@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Scan every public suffix for a word, resolve the names, and see which sites answer without redirects.">
+  <title>Suffix Atlas — every address for one word</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="./fonts/work-sans-300-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./fonts/plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="frame">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Suffix Atlas home">
+        <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1"></rect>
+          <rect x="9.25" y="1.5" width="5.5" height="5.5" rx="1" opacity=".42"></rect>
+          <rect x="17" y="1.5" width="5.5" height="5.5" rx="1" opacity=".18"></rect>
+          <rect x="1.5" y="9.25" width="5.5" height="5.5" rx="1" opacity=".42"></rect>
+          <rect x="9.25" y="9.25" width="5.5" height="5.5" rx="1" class="mark-live"></rect>
+          <rect x="17" y="9.25" width="5.5" height="5.5" rx="1" opacity=".42"></rect>
+          <rect x="1.5" y="17" width="5.5" height="5.5" rx="1" opacity=".18"></rect>
+          <rect x="9.25" y="17" width="5.5" height="5.5" rx="1" opacity=".42"></rect>
+          <rect x="17" y="17" width="5.5" height="5.5" rx="1"></rect>
+        </svg>
+        <span class="brand-name">Suffix Atlas</span>
+      </a>
+      <div class="topbar-right">
+        <span class="index-state">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="root-count">1,436 TLDs in the root</span>
+        </span>
+        <button class="link-button" type="button" data-method>Method</button>
+      </div>
+    </header>
+
+    <main class="sheet">
+      <div class="workspace">
+        <section class="controls" aria-labelledby="page-title">
+          <div class="intro">
+            <h1 id="page-title"><span>Every address</span><span>for one word.</span></h1>
+            <p class="lead">Scan the public suffix index, then see which sites answer in place. Redirects stay out of the direct list.</p>
+
+            <form id="search-form" novalidate>
+              <label class="field-label" for="term">Word to scan</label>
+              <div class="search-row">
+                <input
+                  id="term"
+                  name="term"
+                  type="text"
+                  inputmode="search"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
+                  placeholder="google"
+                  maxlength="63"
+                  aria-describedby="scan-note form-error"
+                >
+                <button class="scan-button" type="submit">
+                  <span class="button-label">Scan</span>
+                  <span class="button-progress" aria-hidden="true"></span>
+                </button>
+              </div>
+              <p class="form-note" id="scan-note"><span id="scan-total">1,900</span> suffixes per scan. One word, no dots.</p>
+              <p class="form-error" id="form-error" role="alert" hidden></p>
+            </form>
+
+            <div class="examples" aria-label="Example scans">
+              <span>Try</span>
+              <button type="button" data-example="google">google</button>
+              <button type="button" data-example="mozilla">mozilla</button>
+              <button type="button" data-example="nike">nike</button>
+              <button type="button" data-example="bbc">bbc</button>
+            </div>
+            <noscript><p class="noscript">This scan needs JavaScript to reach the suffix index.</p></noscript>
+          </div>
+
+          <div class="test-note">
+            <h2>The test</h2>
+            <p>A name is direct when HTTPS answers 2xx with no redirect. The scan also reports names that redirect, block the request, or resolve without a site.</p>
+            <button type="button" class="text-link" data-method>Read the method</button>
+          </div>
+        </section>
+
+        <div class="main-column">
+          <section class="stage" id="stage" data-ui aria-labelledby="stage-title" aria-busy="false">
+            <div class="stage-head">
+              <div>
+                <h2 id="stage-title">The suffix field</h2>
+                <p>Each mark is one public suffix. Green marks resolve; dark marks answer directly.</p>
+              </div>
+              <span class="scan-state" id="scan-state" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span id="state-label">Ready</span></span>
+            </div>
+
+            <div class="readout">
+              <div class="readout-item">
+                <span class="readout-label">Checked</span>
+                <span class="readout-value"><span id="stat-checked">0</span><span class="readout-total" id="stat-total">/ 1,900</span></span>
+              </div>
+              <div class="readout-item">
+                <span class="readout-label">Resolved</span>
+                <span class="readout-value" id="stat-found">0</span>
+              </div>
+              <div class="readout-item">
+                <span class="readout-label">Direct</span>
+                <span class="readout-value" id="stat-direct">—</span>
+              </div>
+            </div>
+
+            <div class="field-wrap" id="field-wrap">
+              <canvas id="suffix-field" aria-hidden="true"></canvas>
+            </div>
+
+            <div class="stage-foot">
+              <div class="progress-track" aria-hidden="true"><span class="progress-fill" id="progress-fill"></span></div>
+              <div class="stage-line">
+                <span class="sample-line" id="sample-line">Type a word to fill the field.</span>
+                <span class="phase-line" id="phase-line">Ready</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="results" id="results" data-ui aria-labelledby="results-title" hidden>
+            <div class="results-head">
+              <div>
+                <h2 id="results-title"><span id="result-term">google</span><span class="results-count" id="results-count">0 addresses</span></h2>
+                <p class="results-summary" id="results-summary" aria-live="polite"></p>
+              </div>
+              <button class="secondary-button" id="download" type="button">Download CSV</button>
+            </div>
+
+            <div class="tabs" role="tablist" aria-label="Result groups" id="tabs">
+              <button class="tab" type="button" role="tab" id="tab-direct" data-tab="direct" aria-selected="true" tabindex="0">Direct <span class="tab-count" id="count-direct">0</span></button>
+              <button class="tab" type="button" role="tab" id="tab-reachable" data-tab="reachable" aria-selected="false" tabindex="-1">Reachable <span class="tab-count" id="count-reachable">0</span></button>
+              <button class="tab" type="button" role="tab" id="tab-redirects" data-tab="redirects" aria-selected="false" tabindex="-1">Redirects <span class="tab-count" id="count-redirects">0</span></button>
+              <button class="tab" type="button" role="tab" id="tab-all" data-tab="all" aria-selected="false" tabindex="-1" aria-label="All found">All <span class="tab-count" id="count-all">0</span></button>
+            </div>
+
+            <div class="table-wrap" id="table-wrap">
+              <table class="results-table" aria-labelledby="results-title">
+                <thead>
+                  <tr>
+                    <th scope="col">Address</th>
+                    <th scope="col">Answer</th>
+                    <th scope="col" class="num">HTTP</th>
+                    <th scope="col" class="num">Time</th>
+                    <th scope="col">Goes to</th>
+                  </tr>
+                </thead>
+                <tbody id="results-body"></tbody>
+              </table>
+            </div>
+
+            <div class="empty-results" id="empty-results" hidden>
+              <h3 id="empty-title">No direct answers.</h3>
+              <p id="empty-text">Every name that answered used a redirect.</p>
+              <button class="secondary-button" type="button" id="empty-action">Show reachable names</button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <footer class="sheet-footer">
+        <span>Suffix Atlas</span>
+        <span>Public suffix data from IANA. Reachability checked live, not cached.</span>
+        <span id="index-updated">Index loading</span>
+      </footer>
+    </main>
+  </div>
+
+  <dialog class="method-dialog" id="method-dialog" aria-labelledby="method-title">
+    <div class="dialog-head">
+      <h2 id="method-title">What the scan does</h2>
+      <button class="close-button" type="button" id="close-method" aria-label="Close method">
+        <span aria-hidden="true">×</span>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <p class="dialog-lead">Suffix Atlas looks for one word in the public suffix space: the endings in the IANA root zone, plus a set of common multi-level registries such as <code>co.uk</code> and <code>com.au</code>.</p>
+
+      <h3>Coverage</h3>
+      <p>The scan tests <span class="method-total">1,900</span> candidate names: one name per suffix. It does not search page content or find subdomains such as <code>maps.google.com</code>. A public suffix is not a website. A name enters the results when it resolves; the tabs separate those that answer from those that do not.</p>
+
+      <h3>Direct</h3>
+      <p>Direct means the HTTPS endpoint for the apex name answers with a 2xx status and no redirect. The HTTPS request is sent once, and redirects are never followed to turn a redirect into a direct result.</p>
+
+      <h3>Reachable and redirects</h3>
+      <p>Reachable means the server answered any HTTP status. A normal redirect from the apex to <code>www</code> is reported as <em>live after redirect</em>, not as direct. Redirects to another site are labelled <em>redirects away</em>.</p>
+
+      <h3>Limits</h3>
+      <p>Some sites block automated requests with 403 or 429 responses. Those names are reachable but not direct. The probe uses public IPv4 addresses; an IPv6-only site can show no answer. DNS and web responses change; a scan records a moment, not a permanent state. Results are held in memory and are not saved.</p>
+    </div>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

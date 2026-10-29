@@ -1,0 +1,13 @@
+{
+  "name": "suffix-atlas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Scan every public suffix for a word, then test which sites answer without redirects.",
+  "scripts": {
+    "start": "node server/server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
