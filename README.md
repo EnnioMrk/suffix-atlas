@@ -2,7 +2,9 @@
 
 Find the websites that share a word: `google.com`, `google.org`, `google.co.uk`, and every other public suffix where the name resolves. Each scan then tests the HTTP response and separates direct answers from redirects.
 
-Live preview: <https://openchamber.ennio.vip/preview/tld-atlas/>
+Live: <https://domain-finder.ennio.vip/>
+
+Source: <https://github.com/EnnioMrk/suffix-atlas>
 
 ## Run
 
@@ -12,7 +14,7 @@ npm start
 
 Open <http://127.0.0.1:8788/>. No dependencies are required; Node 20 or newer is enough.
 
-For the OpenChamber preview, the public static files are served from `public/` and `/preview/tld-atlas/api/*` is forwarded to the scanner on port 8788. `start-api.sh` starts the scanner. `previews/start.sh` calls it.
+Dokploy builds the `Dockerfile` and runs the app on port 8788. The public route is `domain-finder.ennio.vip`. The OpenChamber preview path remains available for local review: static files come from `public/`, and `/preview/tld-atlas/api/*` is forwarded to the scanner on port 8788. `start-api.sh` starts that local scanner.
 
 ## What a scan does
 
