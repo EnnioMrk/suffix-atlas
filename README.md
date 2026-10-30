@@ -20,9 +20,9 @@ Dokploy builds the `Dockerfile` and runs the app on port 8788. The public route 
 
 There are two Dokploy installations. Do not confuse them.
 
-- **ENO / Ennio (live):** `84.247.128.111`. App `suffix-atlas-wbbg6j`, project `Suffix Atlas`, domain `domain-finder.ennio.vip`. Use this server for all new work.
+- **Ennio (live):** `84.247.128.111`. App `suffix-atlas-wbbg6j`, project `Suffix Atlas`, domain `domain-finder.ennio.vip`. Use this server for all new work.
 - **Wendessen (rollback):** `146.59.235.98`. Old app `suffix-atlas-hv8acm`, project `Suffix Atlas (Wendessen rollback)`. Do not deploy new work here.
-- **DNS:** the `*.ennio.vip` wildcard still points to Wendessen. Each new ENO host needs an explicit proxied A record to `84.247.128.111`. An exact record overrides the wildcard.
+- **DNS:** the `*.ennio.vip` wildcard still points to Wendessen. Each new Ennio host needs an explicit proxied A record to `84.247.128.111`. An exact record overrides the wildcard.
 
 See `/home/openchamber/.config/opencode/AGENTS.md` for the permanent agent rule.
 
