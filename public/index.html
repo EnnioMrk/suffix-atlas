@@ -193,7 +193,7 @@
       <p>If a random label under a suffix also resolves, the suffix answers every name. The scanner marks it as a wildcard and skips it, so it cannot appear in every search.</p>
 
       <h3>Reachable and redirects</h3>
-      <p>Reachable means the server answered any HTTP status. A normal redirect from the apex to <code>www</code> is reported as <em>live after redirect</em>, not as direct. Redirects to another site are labelled <em>redirects away</em>.</p>
+      <p>Reachable means the server answered any HTTP status. A redirect from the apex to a subdomain of the same site, such as <code>www</code> or <code>store</code>, is followed and reported as <em>live after redirect</em>, not as direct. Redirects to another site are labelled <em>redirects away</em>.</p>
 
       <h3>Limits</h3>
       <p>Some sites block automated requests with 403 or 429 responses. Those names are reachable but not direct. The probe uses public IPv4 addresses; an IPv6-only site can show no answer. DNS and web responses change; a scan records a moment, not a permanent state. Results are held in memory and are not saved.</p>

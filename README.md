@@ -35,7 +35,7 @@ See `/home/openchamber/.config/opencode/AGENTS.md` for the permanent agent rule.
 5. Sends one HTTPS `GET` to each real apex name without following redirects. If HTTPS does not complete, it tries HTTP once.
 6. Classifies the answer:
    - **Direct**: HTTPS 2xx, no redirect.
-   - **Live after redirect**: a same-site redirect (usually apex to `www`) ends at 2xx.
+   - **Live after redirect**: a same-site redirect to any subdomain (usually apex to `www`, or a service subdomain such as `store`) ends at 2xx.
    - **Redirects away**: the first redirect leaves the site.
    - **HTTP only**: no HTTPS, but HTTP answers 2xx.
    - **Blocked / Not found / No answer**: the server responded with 401/403/429, 404/410, 5xx, or not at all.

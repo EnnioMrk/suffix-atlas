@@ -221,10 +221,9 @@ async function probeUrl(url, addresses, timeout = PROBE_TIMEOUT) {
 function isSameSite(domain, hostname) {
   const target = hostname.toLowerCase().replace(/\.$/, '');
   const base = domain.toLowerCase().replace(/\.$/, '');
-  if (target === base) return true;
-  if (target === `www.${base}`) return true;
-  if (base === `www.${target}`) return true;
-  return false;
+  // The apex and every subdomain of the site are allowed. A redirect to
+  // another registrable domain is external.
+  return target === base || target.endsWith(`.${base}`);
 }
 
 function redirectTarget(location, currentUrl) {
