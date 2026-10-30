@@ -1,15 +1,21 @@
 import dns from 'node:dns/promises';
+import { randomBytes } from 'node:crypto';
 import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
 
 const resolver = new dns.Resolver({ timeout: 2800, tries: 1 });
+const wildcardResolver = new dns.Resolver({ timeout: 5000, tries: 2 });
 const USER_AGENT = 'Mozilla/5.0 (compatible; SuffixAtlas/1.0; domain-reachability-check)';
 const DNS_CONCURRENCY = 90;
+const WILDCARD_CONCURRENCY = 6;
 const PROBE_CONCURRENCY = 42;
 const PROBE_TIMEOUT = 4200;
 const FALLBACK_TIMEOUT = 2500;
 const MAX_REDIRECTS = 4;
+const WILDCARD_TTL = 24 * 60 * 60 * 1000;
+const wildcardCache = new Map();
+const wildcardChecks = new Map();
 
 function isPublicIp(address) {
   const family = net.isIP(address);
@@ -40,6 +46,39 @@ function isPublicIp(address) {
     return true;
   }
   return false;
+}
+
+async function resolveWildcard(domain) {
+  try {
+    return { addresses: await wildcardResolver.resolve4(domain) };
+  } catch (error) {
+    return { error: error.code || 'DNS_ERROR' };
+  }
+}
+
+async function isWildcardSuffix(suffix) {
+  const cached = wildcardCache.get(suffix);
+  if (cached && Date.now() - cached.at < WILDCARD_TTL) return cached.value;
+  if (wildcardChecks.has(suffix)) return wildcardChecks.get(suffix);
+
+  const check = (async () => {
+    let value = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const label = `atlas-wildcard-${randomBytes(8).toString('hex')}`;
+      const result = await resolveWildcard(`${label}.${suffix}`);
+      if (result.addresses?.length) {
+        value = true;
+        break;
+      }
+      if (['ENOTFOUND', 'ENODATA', 'ENODOMAIN'].includes(result.error)) break;
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    }
+    wildcardCache.set(suffix, { value, at: Date.now() });
+    return value;
+  })().finally(() => wildcardChecks.delete(suffix));
+
+  wildcardChecks.set(suffix, check);
+  return check;
 }
 
 async function resolveDomain(domain) {
@@ -412,7 +451,7 @@ async function runPool(items, concurrency, worker) {
   await Promise.all(workers);
 }
 
-function summarise(results, startedAt) {
+function summarise(results, startedAt, wildcards) {
   const counts = {
     found: results.length,
     direct: 0,
@@ -435,6 +474,7 @@ function summarise(results, startedAt) {
   }
   return {
     ...counts,
+    wildcards: wildcards || 0,
     elapsedMs: Date.now() - startedAt,
   };
 }
@@ -465,6 +505,9 @@ export async function createScan(term, suffixIndex) {
     found: 0,
     probeTotal: 0,
     probed: 0,
+    wildcardTotal: 0,
+    wildcardChecked: 0,
+    wildcards: 0,
     marks: [],
     sample: [],
     results: [],
@@ -483,18 +526,30 @@ export async function createScan(term, suffixIndex) {
       suffixIndex: suffix.index,
     }));
 
-    const sites = [];
+    const resolved = [];
     await runPool(candidates, DNS_CONCURRENCY, async (candidate) => {
       const addresses = await resolveDomain(candidate.ascii);
-      if (addresses.length) {
-        sites.push({ ...candidate, addresses });
-        job.marks.push(candidate.suffixIndex);
-        job.found = sites.length;
-        if (job.sample.length < 8) job.sample.push(candidate.display);
-      }
+      if (addresses.length) resolved.push({ ...candidate, addresses });
       job.checked += 1;
     });
 
+    job.found = resolved.length;
+    job.phase = 'wildcard';
+    job.wildcardTotal = resolved.length;
+
+    const sites = [];
+    await runPool(resolved, WILDCARD_CONCURRENCY, async (site) => {
+      if (await isWildcardSuffix(site.suffixAscii)) {
+        job.wildcards += 1;
+      } else {
+        sites.push(site);
+      }
+      job.wildcardChecked += 1;
+    });
+
+    job.marks = sites.map((site) => site.suffixIndex);
+    job.sample = sites.slice(0, 8).map((site) => site.display);
+    job.found = sites.length;
     job.phase = 'probe';
     job.probeTotal = sites.length;
     job.checked = job.total;
@@ -511,7 +566,7 @@ export async function createScan(term, suffixIndex) {
       if (order !== 0) return order;
       return a.display.localeCompare(b.display);
     });
-    job.summary = summarise(job.results, startedAt);
+    job.summary = summarise(job.results, startedAt, job.wildcards);
     job.status = 'done';
     job.phase = 'done';
     job.completedAt = Date.now();
@@ -538,6 +593,9 @@ export function publicJob(job, includeResults = true) {
     found: job.found,
     probeTotal: job.probeTotal,
     probed: job.probed,
+    wildcardTotal: job.wildcardTotal,
+    wildcardChecked: job.wildcardChecked,
+    wildcards: job.wildcards,
     marks: job.marks,
     sample: job.sample,
     summary: job.summary,

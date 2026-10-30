@@ -24,6 +24,7 @@ const results = $('#results');
 const resultsBody = $('#results-body');
 const tableWrap = $('#table-wrap');
 const emptyResults = $('#empty-results');
+const wildcardNote = $('#wildcard-note');
 const emptyTitle = $('#empty-title');
 const emptyText = $('#empty-text');
 const emptyAction = $('#empty-action');
@@ -266,14 +267,17 @@ function drawField() {
 function updateStage(job) {
   const total = job.total || field.total;
   const isDns = job.phase === 'dns';
+  const isWildcard = job.phase === 'wildcard';
   const isProbe = job.phase === 'probe';
   const target = isDns ? job.checked : total;
   const checked = isDns ? job.checked : total;
   const probeProgress = job.probeTotal ? job.probed / job.probeTotal : 1;
+  const wildcardProgress = job.wildcardTotal ? job.wildcardChecked / job.wildcardTotal : 1;
   let progress = 0;
   if (job.status === 'done') progress = 1;
   else if (isDns) progress = 0.64 * (checked / Math.max(1, total));
-  else if (isProbe) progress = 0.64 + 0.36 * probeProgress;
+  else if (isWildcard) progress = 0.64 + 0.1 * wildcardProgress;
+  else if (isProbe) progress = 0.74 + 0.26 * probeProgress;
 
   setFieldState({
     total,
@@ -292,7 +296,9 @@ function updateStage(job) {
     ? `Complete in ${formatDuration(job.summary?.elapsedMs)}`
     : isDns
       ? 'Resolving DNS'
-      : 'Testing HTTPS';
+      : isWildcard
+        ? 'Checking wildcards'
+        : 'Testing HTTPS';
 
   const samples = (job.sample || []).slice(0, 4);
   $('#sample-line').textContent = samples.length
@@ -322,6 +328,7 @@ function finishScan(job) {
     redirects: 0,
     live: 0,
     elapsedMs: 0,
+    wildcards: 0,
   };
 
   const directMarks = new Set(
@@ -350,6 +357,13 @@ function finishScan(job) {
   $('#results-summary').textContent = summary.found
     ? `${formatNumber(summary.direct)} direct · ${formatNumber(summary.canonical)} live after redirect · ${formatNumber(summary.external)} redirect away · scan took ${formatDuration(summary.elapsedMs)}`
     : `${formatNumber(job.total)} suffixes checked · no names resolve for “${job.term}”`;
+  if (summary.wildcards > 0) {
+    wildcardNote.hidden = false;
+    wildcardNote.textContent = `${formatNumber(summary.wildcards)} wildcard suffix${summary.wildcards === 1 ? '' : 'es'} skipped: they resolve every name, so they are not sites.`;
+  } else {
+    wildcardNote.hidden = true;
+    wildcardNote.textContent = '';
+  }
   $('#count-direct').textContent = formatNumber(summary.direct);
   $('#count-reachable').textContent = formatNumber(summary.answered);
   $('#count-redirects').textContent = formatNumber(summary.redirects);
@@ -409,6 +423,8 @@ async function runScan(rawTerm, { updateUrl = true } = {}) {
   document.title = `${term} · Suffix Atlas`;
   results.hidden = true;
   results.classList.remove('is-revealed');
+  wildcardNote.hidden = true;
+  wildcardNote.textContent = '';
   document.body.classList.remove('has-results', 'is-complete', 'is-error');
   document.body.classList.add('is-scanning');
   setScanning(true);

@@ -129,6 +129,7 @@
               <div>
                 <h2 id="results-title"><span id="result-term">google</span><span class="results-count" id="results-count">0 addresses</span></h2>
                 <p class="results-summary" id="results-summary" aria-live="polite"></p>
+                <p class="wildcard-note" id="wildcard-note" hidden></p>
               </div>
               <button class="secondary-button" id="download" type="button">Download CSV</button>
             </div>
@@ -187,6 +188,9 @@
 
       <h3>Direct</h3>
       <p>Direct means the HTTPS endpoint for the apex name answers with a 2xx status and no redirect. The HTTPS request is sent once, and redirects are never followed to turn a redirect into a direct result.</p>
+
+      <h3>Wildcards</h3>
+      <p>If a random label under a suffix also resolves, the suffix answers every name. The scanner marks it as a wildcard and skips it, so it cannot appear in every search.</p>
 
       <h3>Reachable and redirects</h3>
       <p>Reachable means the server answered any HTTP status. A normal redirect from the apex to <code>www</code> is reported as <em>live after redirect</em>, not as direct. Redirects to another site are labelled <em>redirects away</em>.</p>

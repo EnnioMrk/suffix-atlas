@@ -616,6 +616,13 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.wildcard-note {
+  margin: 7px 0 0;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
 .secondary-button {
   flex: 0 0 auto;
   padding: 8px 12px;
