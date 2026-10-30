@@ -368,6 +368,7 @@ function finishScan(job) {
   $('#count-reachable').textContent = formatNumber(summary.answered);
   $('#count-redirects').textContent = formatNumber(summary.redirects);
   $('#count-all').textContent = formatNumber(summary.found);
+  downloadButton.hidden = summary.found === 0;
 
   results.hidden = false;
   results.classList.remove('is-revealed');
@@ -594,10 +595,20 @@ function resultsFor(tab) {
 
 function emptyCopy(tab) {
   if (tab === 'direct') {
+    if (!state.results.length) {
+      return {
+        title: 'No names found.',
+        text: state.summary?.wildcards
+          ? 'No real names resolve. Wildcard suffixes are skipped because they answer every name.'
+          : 'None of the suffixes in this index resolve for this word.',
+        action: '',
+        target: '',
+      };
+    }
     return {
       title: 'No direct answers.',
       text: 'No name answered directly. Other groups hold redirects, HTTP-only sites, and names that did not answer.',
-      action: state.summary?.answered ? 'Show reachable names' : state.results.length ? 'Show all found' : '',
+      action: state.summary?.answered ? 'Show reachable names' : 'Show all found',
       target: state.summary?.answered ? 'reachable' : 'all',
     };
   }
